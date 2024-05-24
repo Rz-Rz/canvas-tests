@@ -29,13 +29,16 @@ export class CanvasComponent implements OnInit, AfterViewInit {
 
   private lineGraph!: LineGraph;
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object,  private testDataService: TestDataService) { }
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private testDataService: TestDataService,
+  ) { }
   ngOnInit(): void { }
   ngAfterViewInit(): void {
     if (isPlatformBrowser(this.platformId)) {
       const canvas = this.canvasElement.nativeElement;
       this.lineGraph = new LineGraph(canvas, 800, 500);
-        const startTime = 0; // Start time in seconds
+      const startTime = 0; // Start time in seconds
       const timeInterval = 30; // Interval in seconds
       const pointsCount = 25; // Number of data points
 
@@ -46,49 +49,114 @@ export class CanvasComponent implements OnInit, AfterViewInit {
           pointsCount,
         );
 
+      const { initialPoints, latePoints } =
+        this.testDataService.generateInitialAndLatePoints(
+          startTime,
+          timeInterval,
+          pointsCount,
+        );
+
       const trajOptions: DrawOptions = {
-        color: 'red',
-        lineWidth: 1,
+        color: 'lightgrey',
+        lineWidth: 0.5,
       };
 
       const axisOptions: AxisOptions = {
         fontSize: 10,
         fontColor: 'lightgrey',
         font: 'Verdana',
-        xPadding: 50,
-        yPadding: 100,
+        padding: {
+          left: 100,
+          right: 0,
+          top: 50,
+          bottom: 100,
+        },
         xScale: xScale,
         yScale: yScale,
         yAxisStyle: { color: 'lightgrey', lineWidth: 1 },
         xAxisStyle: { color: 'lightgrey', lineWidth: 1 },
-        // xLabel: 'Time',
-        // yLabel: 'Elevation',
+        xLabel: 'Time',
+        yLabel: 'Elevation',
       };
 
-      this.lineGraph.drawAxes(axisOptions);
+      // this.lineGraph.drawAxes(axisOptions);
 
-      this.lineGraph.connectDataPoints(
-        reliefData,
-        axisOptions.xPadding,
-        axisOptions.yPadding,
-        trajOptions,
-        xScale,
-        yScale
-      );
+      this.lineGraph.connectDataPoints(reliefData, axisOptions, trajOptions);
 
       // Optionally plot the trajectory data if needed
       const trajOptions2: DrawOptions = {
-        color: 'blue',
+        color: 'lightgrey',
         lineWidth: 1,
       };
+
       this.lineGraph.connectDataPoints(
         trajectoryData,
-        axisOptions.xPadding,
-        axisOptions.yPadding,
+        axisOptions,
         trajOptions2,
-        xScale,
-        yScale
       );
+
+      this.lineGraph.fillAreaUnderCurve(
+        trajectoryData,
+        axisOptions,
+        'rgba(80, 80, 80, 0.25)',
+      );
+
+      this.lineGraph.drawVerticalLineToTrajectoryWithLimits(
+        initialPoints,
+        trajectoryData,
+        axisOptions,
+        { color: 'yellow', lineWidth: 0.6, lineDash: [5, 5] },
+      );
+
+      this.lineGraph.drawVerticalLineToTrajectoryWithLimits(
+        latePoints,
+        trajectoryData,
+        axisOptions,
+        { color: 'red', lineWidth: 0.6, lineDash: [5, 5] },
+      );
+
+      // this.lineGraph.drawSelectors(
+      //   initialPoints,
+      //   axisOptions,
+      //   {
+      //     color: 'yellow',
+      //     lineWidth: 1.5,
+      //     lineDash: [0, 0],
+      //   },
+      //   40,
+      //   'aaaaaaaaaa',
+      // );
+
+      this.lineGraph.drawSelectorsAndIndicators(
+        initialPoints,
+        axisOptions,
+        {
+          color: 'yellow',
+          lineWidth: 1.5,
+          lineDash: [0, 0],
+        },
+        40,
+        'aaaaaaaaaa',
+        'Initial',
+        'Final'
+      );
+
+      this.lineGraph.drawSelectors(
+        latePoints,
+        axisOptions,
+        {
+          color: 'red',
+          lineWidth: 1.5,
+          lineDash: [0, 0],
+        },
+        10,
+        'aaaaa bbbbb',
+      );
+      this.lineGraph.displayMaxValues(axisOptions, {
+        color: 'white',
+        lineWidth: 0.8,
+        font: '14px Trebuchet MS',
+      });
     }
   }
 }
