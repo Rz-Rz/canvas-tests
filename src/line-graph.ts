@@ -570,21 +570,13 @@ class LineGraph {
     this.ctx.fillStyle = drawOptions.color || 'black';
     this.ctx.font = drawOptions.font || '12px Arial';
     this.ctx.textAlign = 'right';
-    this.ctx.fillText(
-      `-${yMax} m`,
-      textXPosition,
-      textYPosition - 20,
-    );
+    this.ctx.fillText(`-${yMax} m`, textXPosition, textYPosition - 20);
 
     // Draw the max X value below the max Y value
-    this.ctx.fillText(
-      `-${xMax} s`,
-      textXPosition,
-      textYPosition,
-    );
+    this.ctx.fillText(`-${xMax} s`, textXPosition, textYPosition);
   }
 
-   drawSelectorsAndIndicators(
+  drawSelectorsAndIndicators(
     initialPoints: DataPoint[], // Array of DataPoint objects on the x-axis
     axisOptions: AxisOptions,
     drawOptions: DrawOptions = {},
@@ -592,6 +584,8 @@ class LineGraph {
     centerText: string = '', // Text to be displayed between the selectors
     leftText: string = '', // Text to be displayed on the left side of the selectors
     rightText: string = '', // Text to be displayed on the right side of the selectors
+    leftText2: string = '', // Second text to be displayed on the left side of the selectors
+    rightText2: string = '', // Second text to be displayed on the right side of the selectors
   ): void {
     const {
       xScale,
@@ -610,6 +604,7 @@ class LineGraph {
     const barWidth = 10; // Width of the horizontal bar
     const verticalBarWidth = 2; // Width of the vertical bar
     const textPadding = 5; // Padding around the text
+    const textHeight = 12; // Estimated height of the text (adjust based on font size)
 
     // Calculate x positions of the selectors
     const xPositions = initialPoints.map(
@@ -629,55 +624,147 @@ class LineGraph {
       const horizontalBarDirection = index === 0 ? 1 : -1; // First faces right, second faces left
       const horizontalBarXEnd = x + horizontalBarDirection * barWidth;
       const horizontalBarY = verticalBarYStart + barHeight / 2;
-      this.drawLine(x, horizontalBarY, horizontalBarXEnd, horizontalBarY, drawOptions);
+      this.drawLine(
+        x,
+        horizontalBarY,
+        horizontalBarXEnd,
+        horizontalBarY,
+        drawOptions,
+      );
     });
 
     // Calculate text positions
-    if (centerText || leftText || rightText) {
+    if (centerText || leftText || rightText || leftText2 || rightText2) {
       const [x1, x2] = xPositions;
-      const centerTextWidth = this.ctx.measureText(centerText).width;
-      const leftTextWidth = this.ctx.measureText(leftText).width;
-      const rightTextWidth = this.ctx.measureText(rightText).width;
+      const centerTextWidth = centerText
+        ? this.ctx.measureText(centerText).width
+        : 0;
+      const leftTextWidth = leftText ? this.ctx.measureText(leftText).width : 0;
+      const rightTextWidth = rightText
+        ? this.ctx.measureText(rightText).width
+        : 0;
+      const leftText2Width = leftText2
+        ? this.ctx.measureText(leftText2).width
+        : 0;
+      const rightText2Width = rightText2
+        ? this.ctx.measureText(rightText2).width
+        : 0;
 
       const horizontalBarTotalWidth = barWidth + verticalBarWidth + textPadding;
 
-      // Position for center text
-      let centerTextX, centerTextY;
-      centerTextY = this.height - yPaddingBottom + padTop + barHeight + 5; // Below the horizontal bars
+      // Initialize text positions
+      let centerTextX = 0,
+        centerTextY = 0;
+      let leftTextX = 0,
+        leftTextY = 0;
+      let rightTextX = 0,
+        rightTextY = 0;
+      let leftText2X = 0,
+        leftText2Y = 0;
+      let rightText2X = 0,
+        rightText2Y = 0;
+      centerTextY = this.height - yPaddingBottom + padTop + barHeight / 2 + 5; // Aligned with the middle of the horizontal bars
+      leftTextY = centerTextY; // Aligned with the center text
+      rightTextY = centerTextY; // Aligned with the center text
+      leftText2Y = centerTextY - textHeight - textPadding; // Slightly above leftText
+      rightText2Y = centerTextY - textHeight - textPadding; // Slightly above rightText
 
-      if ((x2 - x1) - (horizontalBarTotalWidth * 2) >= centerTextWidth) {
-        centerTextX = (x1 + x2) / 2 - centerTextWidth / 2;
-      } else {
-        centerTextX = (x1 + x2) / 2 - centerTextWidth / 2;
+      // Determine positions
+      let spaceBetweenSelectors = x2 - x1 - horizontalBarTotalWidth * 2;
+      let spaceLeftOfFirstSelector =
+        x1 - xPaddingLeft - horizontalBarTotalWidth;
+      let spaceRightOfSecondSelector =
+        this.width - x2 - xPaddingRight - horizontalBarTotalWidth;
+
+      if (leftText) {
+        if (spaceLeftOfFirstSelector >= leftTextWidth) {
+          leftTextX = x1 - leftTextWidth - horizontalBarTotalWidth;
+        } else if (spaceRightOfSecondSelector >= leftTextWidth) {
+          leftTextX = x2 + horizontalBarTotalWidth;
+        } else {
+          leftTextX = x1 + horizontalBarTotalWidth + 5; // Place to the right of the first selector if no space on left
+        }
+      }
+
+      if (leftText2) {
+        if (spaceLeftOfFirstSelector >= leftText2Width) {
+          leftText2X = x1 - leftText2Width - horizontalBarTotalWidth;
+        } else if (spaceRightOfSecondSelector >= leftText2Width) {
+          leftText2X = x2 + horizontalBarTotalWidth;
+        } else {
+          leftText2X = x1 + horizontalBarTotalWidth + 5; // Place to the right of the first selector if no space on left
+        }
+      }
+
+      if (centerText) {
+        if (spaceBetweenSelectors >= centerTextWidth) {
+          centerTextX = (x1 + x2) / 2 - centerTextWidth / 2;
+        } else if (spaceRightOfSecondSelector >= centerTextWidth) {
+          centerTextX = x2 + horizontalBarTotalWidth;
+        } else if (spaceLeftOfFirstSelector >= centerTextWidth) {
+                    leftTextX -= centerTextWidth + leftTextWidth + textPadding;
+          centerTextX = x1 - centerTextWidth - horizontalBarTotalWidth - textPadding - 5;
+        } else {
+          centerTextX = leftText
+            ? leftTextX + leftTextWidth + textPadding + 5
+            : x1 - centerTextWidth - textPadding;
+        }
+      }
+
+      if (rightText) {
+        if (spaceRightOfSecondSelector >= rightTextWidth) {
+          rightTextX = x2 + horizontalBarTotalWidth;
+        } else if (spaceLeftOfFirstSelector >= rightTextWidth) {
+          rightTextX = x1 - rightTextWidth - horizontalBarTotalWidth;
+        } else {
+          rightTextX = x2 - rightTextWidth - horizontalBarTotalWidth - 5; // Place to the left of the second selector if no space on right
+        }
+      }
+
+      if (rightText2) {
+        if (spaceRightOfSecondSelector >= rightText2Width) {
+          rightText2X = rightTextX + horizontalBarTotalWidth + rightTextWidth + textPadding + 5;
+        } else if (spaceLeftOfFirstSelector >= rightText2Width) {
+          rightText2X = x1 - rightText2Width - horizontalBarTotalWidth;
+        } else {
+          rightText2X = x2 - rightText2Width - horizontalBarTotalWidth - 5; // Place to the left of the second selector if no space on right
+        }
+      }
+
+      // Ensure texts do not overlap with additional padding
+      if (
+        centerText &&
+        leftText &&
+        leftTextX + leftTextWidth + textPadding > centerTextX
+      ) {
+        centerTextX = leftTextX + leftTextWidth + textPadding + 5; // Added 5px padding
+      }
+      if (
+        centerText &&
+        rightText &&
+        centerTextX + centerTextWidth + textPadding > rightTextX
+      ) {
+        rightTextX = centerTextX + centerTextWidth + textPadding + 10; // Added 10px padding
       }
 
       this.ctx.fillStyle = drawOptions.color || 'black';
       this.ctx.font = drawOptions.font || '12px Arial';
-      this.ctx.fillText(centerText, centerTextX, centerTextY);
 
-      // Position for left text
-      let leftTextX, leftTextY;
-      leftTextY = centerTextY + 20; // Slightly below center text
-
-      if (x1 - xPaddingLeft - horizontalBarTotalWidth >= leftTextWidth) {
-        leftTextX = x1 - leftTextWidth - horizontalBarTotalWidth;
-      } else {
-        leftTextX = x1 + horizontalBarTotalWidth + 5; // Place to the right of the first selector if no space on left
+      if (centerText) {
+        this.ctx.fillText(centerText, centerTextX, centerTextY);
       }
-
-      this.ctx.fillText(leftText, leftTextX, leftTextY);
-
-      // Position for right text
-      let rightTextX, rightTextY;
-      rightTextY = leftTextY + 20; // Slightly below left text
-
-      if (this.width - x2 - xPaddingRight - horizontalBarTotalWidth >= rightTextWidth) {
-        rightTextX = x2 + horizontalBarTotalWidth;
-      } else {
-        rightTextX = x2 - rightTextWidth - horizontalBarTotalWidth - 5; // Place to the left of the second selector if no space on right
+      if (leftText) {
+        this.ctx.fillText(leftText, leftTextX, leftTextY);
       }
-
-      this.ctx.fillText(rightText, rightTextX, rightTextY);
+      if (rightText) {
+        this.ctx.fillText(rightText, rightTextX, rightTextY);
+      }
+      if (leftText2) {
+        this.ctx.fillText(leftText2, leftText2X, leftText2Y);
+      }
+      if (rightText2) {
+        this.ctx.fillText(rightText2, rightText2X, rightText2Y);
+      }
     }
   }
 }

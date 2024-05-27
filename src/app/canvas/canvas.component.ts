@@ -135,13 +135,15 @@ export class CanvasComponent implements OnInit, AfterViewInit {
           lineWidth: 1.5,
           lineDash: [0, 0],
         },
-        40,
+        50,
         'aaaaaaaaaa',
         'Initial',
-        'Final'
+        'Final',
+        'Initial up',
+        'Final up'
       );
 
-      this.lineGraph.drawSelectors(
+      this.lineGraph.drawSelectorsAndIndicators(
         latePoints,
         axisOptions,
         {
@@ -149,9 +151,24 @@ export class CanvasComponent implements OnInit, AfterViewInit {
           lineWidth: 1.5,
           lineDash: [0, 0],
         },
-        10,
+        15,
         'aaaaa bbbbb',
+        'Test',
+        '',
+        'Final up'
       );
+
+      // this.lineGraph.drawSelectors(
+      //   latePoints,
+      //   axisOptions,
+      //   {
+      //     color: 'red',
+      //     lineWidth: 1.5,
+      //     lineDash: [0, 0],
+      //   },
+      //   10,
+      //   'aaaaa bbbbb',
+      // );
       this.lineGraph.displayMaxValues(axisOptions, {
         color: 'white',
         lineWidth: 0.8,
